@@ -110,6 +110,13 @@ public class TileProviderFactory {
             registerTileProvider(new CyclosmSource());
             registerTileProvider(new OpenTopoMapSource());
 
+            if (AbstractMapyCzSource.isConfigured()) {
+                registerTileProvider(new MapyCzBasicSource());
+                registerTileProvider(new MapyCzOutdoorSource());
+                registerTileProvider(new MapyCzAerialSource());
+                registerTileProvider(new MapyCzWinterSource());
+            }
+
             if (UserDefinedMapsforgeOnlineSource.isConfigured()) {
                 registerTileProvider(new UserDefinedMapsforgeOnlineSource());
             }
