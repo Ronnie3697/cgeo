@@ -1,0 +1,40 @@
+name: Sync upstream cgeo
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync master branch from cgeo/cgeo
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh repo sync ${{ github.repository }} --branch master --source cgeo/cgeo
+
+      - name: Open or update sync PR into mapycz
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          ahead=$(gh api "repos/${{ github.repository }}/compare/mapycz...master" --jq '.ahead_by')
+          existing=$(gh pr list --base mapycz --head master --state open --json number --jq 'length')
+          if [ "$ahead" = "0" ]; then
+            echo "mapycz already includes all upstream commits, no PR needed"
+            exit 0
+          fi
+          if [ "$existing" != "0" ]; then
+            echo "Sync PR already open, leaving alone"
+            exit 0
+          fi
+          gh pr create \
+            --base mapycz \
+            --head master \
+            --title "Sync upstream cgeo ($ahead new commit(s))" \
+            --body "Automated upstream sync from [cgeo/cgeo](https://github.com/cgeo/cgeo). Review the diff, then merge to bring upstream changes into mapycz. Resolve any conflicts with your Mapy.com customizations."
