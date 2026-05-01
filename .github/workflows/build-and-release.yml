@@ -41,26 +41,36 @@ jobs:
         run: |
           mkdir -p release
           cp main/build/outputs/apk/basic/debug/cgeo-debug.apk release/cgeo-mapycz-debug.apk
-          (cd release && sha256sum cgeo-mapycz-debug.apk)
+          cd release
+          sha256sum cgeo-mapycz-debug.apk
 
-      - name: Refresh "latest" release
+      - name: Write release notes
+        env:
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          short_sha=${SHA:0:7}
+          {
+            echo "Automatically built from \`mapycz\` branch at commit \`$short_sha\`."
+            echo ""
+            echo "Direct install URL (bookmark on phone):"
+            echo "https://github.com/$REPO/releases/latest/download/cgeo-mapycz-debug.apk"
+            echo ""
+            echo "Install replaces any previous **c:geo (developer)** build; app data and Mapy.com API key are preserved."
+          } > release-notes.md
+          echo "SHORT_SHA=$short_sha" >> "$GITHUB_ENV"
+
+      - name: Refresh latest release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
           SHA: ${{ github.sha }}
         run: |
           set -e
-          short_sha=${SHA:0:7}
-          # Wipe previous "latest" release and tag, ignore if absent
           gh release delete latest --repo "$REPO" --cleanup-tag --yes 2>/dev/null || true
           gh release create latest \
             --repo "$REPO" \
             --target "$SHA" \
-            --title "Latest auto-build ($short_sha)" \
-            --notes "Automatically built from \`mapycz\` branch at commit \`$short_sha\`.
-
-Direct install URL (bookmark on phone):
-https://github.com/$REPO/releases/latest/download/cgeo-mapycz-debug.apk
-
-Install will replace any previous **c:geo (developer)** build, app data and Mapy.com API key are preserved." \
+            --title "Latest auto-build ($SHORT_SHA)" \
+            --notes-file release-notes.md \
             release/cgeo-mapycz-debug.apk
