@@ -18,13 +18,14 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh repo sync ${{ github.repository }} --branch master --source cgeo/cgeo
 
-      - name: Open or update sync PR into mapycz
+      - name: Open sync PR into mapycz when upstream is ahead
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
         run: |
           set -e
-          ahead=$(gh api "repos/${{ github.repository }}/compare/mapycz...master" --jq '.ahead_by')
-          existing=$(gh pr list --base mapycz --head master --state open --json number --jq 'length')
+          ahead=$(gh api "repos/$REPO/compare/mapycz...master" --jq '.ahead_by')
+          existing=$(gh api "repos/$REPO/pulls?state=open&base=mapycz&head=${REPO%/*}:master" --jq 'length')
           if [ "$ahead" = "0" ]; then
             echo "mapycz already includes all upstream commits, no PR needed"
             exit 0
@@ -33,8 +34,8 @@ jobs:
             echo "Sync PR already open, leaving alone"
             exit 0
           fi
-          gh pr create \
-            --base mapycz \
-            --head master \
-            --title "Sync upstream cgeo ($ahead new commit(s))" \
-            --body "Automated upstream sync from [cgeo/cgeo](https://github.com/cgeo/cgeo). Review the diff, then merge to bring upstream changes into mapycz. Resolve any conflicts with your Mapy.com customizations."
+          gh api "repos/$REPO/pulls" -X POST \
+            -f base=mapycz \
+            -f head=master \
+            -f title="Sync upstream cgeo ($ahead new commit(s))" \
+            -f body="Automated upstream sync from cgeo/cgeo. Review the diff, then merge to bring upstream changes into mapycz. Resolve any conflicts with your Mapy.com customizations."
