@@ -212,6 +212,7 @@
     <string translatable="false" name="pref_tileprovider_hidden">tileprovider_hidden</string>
     <string translatable="false" name="pref_userDefinedTileProviderUri">userDefinedTileProviderUri</string>
     <string translatable="false" name="pref_mapyCzApiKey">mapyCzApiKey</string>
+    <string translatable="false" name="pref_useMapyCz">useMapyCz</string>
 
     <!-- category offline maps -->
     <string translatable="false" name="pref_fakekey_info_offline_maps">fakekey_info_offline_maps</string>

@@ -990,8 +990,10 @@
     <string name="settings_unifiedMapVariants_title">UnifiedMap variants</string>
     <string name="settings_userDefinedTileProvider">User-defined tile provider</string>
     <string name="settings_userDefinedTileProviderUri">Enter full Uri (without trailing slash) to tile provider, or enter full Uri with parameters (including {X}, {Y} and {Z}). Make sure you have checked and comply to their usage conditions.</string>
+    <string name="settings_useMapyCz_title">Use Mapy.com</string>
+    <string name="settings_useMapyCz_summary">Enable Mapy.com map sources (Basic, Outdoor, Aerial, Winter). Requires your personal API key from developer.mapy.com.</string>
     <string name="settings_mapyCzApiKey_title">Mapy.com API key</string>
-    <string name="settings_mapyCzApiKey_summary">Enter your personal Mapy.com API key to enable Mapy.com map sources (Basic, Outdoor, Aerial). Get a free key at developer.mapy.com (250k tile requests / month).</string>
+    <string name="settings_mapyCzApiKey_summary">Enter your personal Mapy.com API key. Get a free key at developer.mapy.com (250k tile requests / month).</string>
     <string name="settings_title_data_dir">Geocache data folder</string>
     <string name="settings_title_data_dir_usage">Geocache data folder (%1$s used)</string>
     <string name="calculate_dataDir_title">Geocache data usage</string>

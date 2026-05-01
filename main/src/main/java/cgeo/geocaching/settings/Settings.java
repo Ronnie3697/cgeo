@@ -1321,6 +1321,10 @@ public class Settings {
         return getString(R.string.pref_mapyCzApiKey, null);
     }
 
+    public static boolean useMapyCz() {
+        return getBoolean(R.string.pref_useMapyCz, false);
+    }
+
     public static void setMapLanguage(@Nullable final String language) {
         putString(R.string.pref_mapLanguage, StringUtils.isBlank(language) ? "" : language);
     }

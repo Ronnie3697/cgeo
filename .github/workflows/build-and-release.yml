@@ -1,0 +1,66 @@
+name: Build and release APK
+
+on:
+  push:
+    branches: [mapycz]
+    paths-ignore:
+      - 'README.md'
+      - '.github/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-and-release
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Build basic debug APK
+        run: ./gradlew :main:assembleBasicDebug --no-daemon --stacktrace
+
+      - name: Stage APK for release
+        run: |
+          mkdir -p release
+          cp main/build/outputs/apk/basic/debug/cgeo-debug.apk release/cgeo-mapycz-debug.apk
+          (cd release && sha256sum cgeo-mapycz-debug.apk)
+
+      - name: Refresh "latest" release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -e
+          short_sha=${SHA:0:7}
+          # Wipe previous "latest" release and tag, ignore if absent
+          gh release delete latest --repo "$REPO" --cleanup-tag --yes 2>/dev/null || true
+          gh release create latest \
+            --repo "$REPO" \
+            --target "$SHA" \
+            --title "Latest auto-build ($short_sha)" \
+            --notes "Automatically built from \`mapycz\` branch at commit \`$short_sha\`.
+
+Direct install URL (bookmark on phone):
+https://github.com/$REPO/releases/latest/download/cgeo-mapycz-debug.apk
+
+Install will replace any previous **c:geo (developer)** build, app data and Mapy.com API key are preserved." \
+            release/cgeo-mapycz-debug.apk

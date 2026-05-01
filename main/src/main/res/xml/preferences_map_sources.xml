@@ -34,9 +34,16 @@
             android:title="@string/settings_userDefinedTileProvider"
             android:summary="@string/settings_userDefinedTileProviderUri"
             app:iconSpaceReserved="false" />
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="@string/pref_useMapyCz"
+            android:title="@string/settings_useMapyCz_title"
+            android:summary="@string/settings_useMapyCz_summary"
+            app:iconSpaceReserved="false" />
         <cgeo.geocaching.settings.TextPreference
             android:defaultValue=""
             android:key="@string/pref_mapyCzApiKey"
+            android:dependency="@string/pref_useMapyCz"
             android:title="@string/settings_mapyCzApiKey_title"
             android:summary="@string/settings_mapyCzApiKey_summary"
             app:iconSpaceReserved="false" />

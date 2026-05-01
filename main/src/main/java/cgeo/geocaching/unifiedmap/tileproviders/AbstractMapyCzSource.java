@@ -21,6 +21,6 @@ abstract class AbstractMapyCzSource extends AbstractMapsforgeOnlineTileProvider 
     }
 
     static boolean isConfigured() {
-        return StringUtils.isNotBlank(Settings.getMapyCzApiKey());
+        return Settings.useMapyCz() && StringUtils.isNotBlank(Settings.getMapyCzApiKey());
     }
 }
