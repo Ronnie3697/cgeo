@@ -101,6 +101,7 @@ import cgeo.geocaching.utils.ImageUtils;
 import cgeo.geocaching.utils.LocalizationUtils;
 import cgeo.geocaching.utils.Log;
 import cgeo.geocaching.utils.MapMarkerUtils;
+import cgeo.geocaching.utils.MarkdownUtils;
 import cgeo.geocaching.utils.MenuUtils;
 import cgeo.geocaching.utils.OfflineTranslateUtils;
 import cgeo.geocaching.utils.ProcessUtils;
@@ -146,7 +147,6 @@ import android.view.ContextMenu;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.View.OnLongClickListener;
@@ -182,6 +182,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 import com.google.android.material.button.MaterialButton;
+import io.noties.markwon.Markwon;
 import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.disposables.CompositeDisposable;
 import io.reactivex.rxjava3.functions.Function;
@@ -765,6 +766,7 @@ public class CacheDetailActivity extends TabbedViewPagerActivity
             menu.findItem(R.id.menu_ignore).setVisible(connector instanceof IIgnoreCapability && ((IIgnoreCapability) connector).canIgnoreCache(cache));
             menu.findItem(R.id.menu_set_cache_icon).setVisible(true);
             menu.findItem(R.id.menu_advanced).setVisible(cache.getCoords() != null);
+            menu.findItem(R.id.menu_change_description_style).setVisible(!DescriptionViewCreator.useMarkdown(cache));
         }
 
         MenuUtils.enableIconsInOverflowMenu(menu);
@@ -1265,7 +1267,7 @@ public class CacheDetailActivity extends TabbedViewPagerActivity
 
             @Override
             protected void onFinished() {
-                updateCacheLists(CacheDetailActivity.this.findViewById(R.id.offline_lists), cache, res, null);
+                updateCacheLists(CacheDetailActivity.this.findViewById(R.id.offline_lists), cache, null);
             }
         }.execute();
     }
@@ -1429,11 +1431,11 @@ public class CacheDetailActivity extends TabbedViewPagerActivity
             updateAttributes(activity);
             binding.attributesBox.setVisibility(cache.getAttributes().isEmpty() ? View.GONE : View.VISIBLE);
 
-            updateOfflineBox(binding.getRoot(), cache, activity.res, new RefreshCacheClickListener(), new DropCacheClickListener(),
+            updateOfflineBox(binding.getRoot(), cache, new RefreshCacheClickListener(), new DropCacheClickListener(),
                     new StoreCacheClickListener(), null, new MoveCacheClickListener(), new StoreCacheClickListener());
 
             // list
-            updateCacheLists(binding.getRoot(), cache, activity.res, activity);
+            updateCacheLists(binding.getRoot(), cache, activity);
 
             // watchlist
 
@@ -1913,12 +1915,7 @@ public class CacheDetailActivity extends TabbedViewPagerActivity
                     binding.hint.setText(CryptUtils.rot13((Spannable) binding.hint.getText()));
                 }
                 // see #17399 and https://stackoverflow.com/questions/22653641/using-onclick-on-textview-with-selectable-text-how-to-avoid-double-click
-                binding.hint.setOnTouchListener((v, event) -> {
-                    if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                        v.requestFocus();
-                    }
-                    return false;
-                });
+                ViewUtils.setImplicitFocusOnTouch(binding.hint);
                 final DecryptTextClickListener decryptListener = new DecryptTextClickListener(binding.hint);
                 binding.hint.setOnClickListener(decryptListener);
                 binding.hint.setClickable(true);
@@ -2093,12 +2090,12 @@ public class CacheDetailActivity extends TabbedViewPagerActivity
         @MainThread
         private static void displayDescription(final Activity activity, final Geocache cache, final CharSequence renderedDescription, final TextView descriptionView) {
             try {
-                descriptionView.setText(renderedDescription, TextView.BufferType.SPANNABLE);
+                displayDescriptionHelper(activity, cache, renderedDescription, descriptionView);
                 descriptionView.setMovementMethod(AnchorAwareLinkMovementMethod.getInstance());
                 if (cache.supportsDescriptionchange()) {
                     descriptionView.setOnClickListener(v ->
                             Dialogs.input(activity, LocalizationUtils.getString(R.string.cache_description_set), cache.getDescription(), "Description", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_NORMAL | InputType.TYPE_TEXT_FLAG_MULTI_LINE, 5, 10, description -> {
-                                descriptionView.setText(description);
+                                displayDescriptionHelper(activity, cache, description, descriptionView);
                                 cache.setDescription(description);
                                 saveAndNotify(activity, cache, LoadFlags.SAVE_ALL);
                                 ViewUtils.showShortToast(activity, R.string.cache_description_updated);
@@ -2106,10 +2103,24 @@ public class CacheDetailActivity extends TabbedViewPagerActivity
                 } else {
                     descriptionView.setOnClickListener(null);
                 }
+                ViewUtils.setImplicitFocusOnTouch(descriptionView);
             } catch (final RuntimeException ex) {
                 Log.e("Problem with description", ex);
                 ActivityMixin.showToast(activity, R.string.err_load_descr_failed);
             }
+        }
+
+        private static void displayDescriptionHelper(final Activity activity, final Geocache cache, final CharSequence renderedDescription, final TextView descriptionView) {
+            if (useMarkdown(cache)) {
+                final Markwon md = MarkdownUtils.create(activity);
+                md.setMarkdown(descriptionView, renderedDescription.toString());
+            } else {
+                descriptionView.setText(renderedDescription, TextView.BufferType.SPANNABLE);
+            }
+        }
+
+        private static boolean useMarkdown(final Geocache cache) {
+            return cache != null && InternalConnector.getInstance().canHandle(cache.getGeocode());
         }
 
         /** CALL IN BACKGROUND ONLY! Renders cache description into an Editable. */
@@ -2140,6 +2151,9 @@ public class CacheDetailActivity extends TabbedViewPagerActivity
         @WorkerThread
         private static Pair<CharSequence, Boolean> createDescriptionContentHelper(final Activity activity, final String descriptionText, final boolean textTooLong, final int descriptionFullLength, final Geocache cache, final boolean restrictLength, final TextView descriptionView, final HtmlStyle descriptionStyle) {
             try {
+                if (useMarkdown(cache)) {
+                    return new Pair<>(descriptionText, textTooLong && restrictLength);
+                }
                 //Format to HTML. This takes time on long listings or those with e.g. many images...
                 final HtmlImage imageGetter = new HtmlImage(cache.getGeocode(), true, false, descriptionView, false);
                 final Pair<Spannable, Boolean> renderedHtml = descriptionStyle.render(activity, descriptionText, imageGetter::getDrawable);
@@ -2465,7 +2479,7 @@ public class CacheDetailActivity extends TabbedViewPagerActivity
 
             // title
             holder.binding.name.setText(StringUtils.isNotBlank(wpt.getName()) ? StringEscapeUtils.unescapeHtml4(wpt.getName()) : coordinates != null ? coordinates.toString() : LocalizationUtils.getString(R.string.waypoint));
-            holder.binding.textIcon.setImageDrawable(MapMarkerUtils.getWaypointMarker(activity.res, wpt, false, Settings.getIconScaleEverywhere()).getDrawable());
+            holder.binding.textIcon.setImageDrawable(MapMarkerUtils.getWaypointMarker(activity.getResources(), wpt, false, Settings.getIconScaleEverywhere()).getDrawable());
 
             // visited
             /* @todo
@@ -2589,6 +2603,8 @@ public class CacheDetailActivity extends TabbedViewPagerActivity
             if (activity.imageGallery == null) {
                 final ImageGalleryView imageGallery = binding.getRoot().findViewById(R.id.image_gallery);
                 ImageUtils.initializeImageGallery(imageGallery, cache.getGeocode(), cache.getNonStaticImages(), true);
+                // Make sure the cache is in the local DB before the user adds images to its image folder.
+                imageGallery.setBeforeImageAddAction(activity::ensureSaved);
                 activity.imageGallery = imageGallery;
                 activity.imageGallery.initializeToPosition(activity.imageGalleryPos);
                 reinitializeTitle();
@@ -2826,7 +2842,7 @@ public class CacheDetailActivity extends TabbedViewPagerActivity
         return false;
     }
 
-    static void updateOfflineBox(final View view, final Geocache cache, final Resources res,
+    static void updateOfflineBox(final View view, final Geocache cache,
                                  final OnClickListener refreshCacheClickListener,
                                  final OnClickListener dropCacheClickListener,
                                  final OnClickListener storeCacheClickListener,
@@ -2891,7 +2907,7 @@ public class CacheDetailActivity extends TabbedViewPagerActivity
         }
     }
 
-    static void updateCacheLists(final View view, final Geocache cache, final Resources res, @Nullable final CacheDetailActivity cacheDetailActivity) {
+    static void updateCacheLists(final View view, final Geocache cache, @Nullable final CacheDetailActivity cacheDetailActivity) {
         final SpannableStringBuilder builder = new SpannableStringBuilder();
         for (final Integer listId : cache.getLists()) {
             if (builder.length() > 0) {

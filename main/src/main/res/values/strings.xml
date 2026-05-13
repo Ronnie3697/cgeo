@@ -1782,7 +1782,6 @@
     <string name="menu_collapse_log">Collapse log</string>
     <string name="cache_log_menu_delete">Delete Log</string>
     <string name="cache_log_menu_popup_title">Log of %s</string>
-    <string name="cache_log_delete_reason">Reason (max. %d characters)</string>
     <string name="cache_log_delete_reason_default">Log was deleted using c:geo</string>
     <string name="ignore_confirm_title">Be careful</string>
     <string name="ignore_confirm_message">Ignoring a cache means that this cache will never occur again when loading data from geocaching.com. You will only be able to see the cache again by unignoring it on the website.</string>
@@ -2964,7 +2963,7 @@
     <string name="check_hillshading_found">Hillshading data already present</string>
     <string name="check_hillshading_missing">Found missing hillshading data:</string>
     <string name="check_hillshading_unsupported">Warning: Hillshading data is at least partly not available for the selected region</string>
-    <string name="check_hillshading_tiles_menu">Check for missing hillshading data</string>
+    <string name="check_hillshading_tiles_menu">Check for missing elevation data</string>
     <string name="mapupdate_info">Tap here to check for updates of map and theme files. Long-tap to postpone.</string>
     <string name="no_updates_found">No updates found</string>
     <string name="updates_check">Updates check</string>
